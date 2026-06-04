@@ -60,6 +60,11 @@ public sealed partial class MiscTab : Control
         Control.AddOptionCheckBox(CCVars.HudHeldItemShow, ShowHeldItemCheckBox);
         Control.AddOptionCheckBox(CCVars.CombatModeIndicatorsPointShow, ShowCombatModeIndicatorsCheckBox);
         Control.AddOptionCheckBox(CCVars.CombatModeAmmoCounterShow, ShowAmmoCounterCheckBox);
+        Control.AddOptionDropDown(CCVars.CombatModeAmmoCounterPosition, DropDownAmmoCounterPosition,
+        [
+            new OptionDropDownCVar<int>.ValueOption(0, Loc.GetString("ui-options-ammo-counter-position-cursor")),
+            new OptionDropDownCVar<int>.ValueOption(1, Loc.GetString("ui-options-ammo-counter-position-hotbar")),
+        ]);
         Control.AddOptionCheckBox(CCVars.OpaqueStorageWindow, OpaqueStorageWindowCheckBox);
         Control.AddOptionCheckBox(CCVars.ChatEnableFancyBubbles, FancySpeechBubblesCheckBox);
         Control.AddOptionCheckBox(CCVars.ChatFancyNameBackground, FancyNameBackgroundsCheckBox);

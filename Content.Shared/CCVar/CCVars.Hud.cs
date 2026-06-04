@@ -15,6 +15,9 @@ public sealed partial class CCVars
 
     public static readonly CVarDef<bool> CombatModeAmmoCounterShow =
         CVarDef.Create("hud.combat_mode_ammo_counter_show", true, CVar.ARCHIVE | CVar.CLIENTONLY);
+    
+    public static readonly CVarDef<int> CombatModeAmmoCounterPosition =
+        CVarDef.Create("hud.combat_mode_ammo_counter_position", 0, CVar.ARCHIVE | CVar.CLIENTONLY);
 
     public static readonly CVarDef<bool> LoocAboveHeadShow =
         CVarDef.Create("hud.show_looc_above_head", true, CVar.ARCHIVE | CVar.CLIENTONLY);

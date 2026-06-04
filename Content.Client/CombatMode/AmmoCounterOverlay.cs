@@ -1,12 +1,15 @@
-using System.Linq;
 using System.Numerics;
+using Content.Shared.CCVar;
 using Content.Client.Hands.Systems;
+using Content.Client.UserInterface.Systems.Hotbar.Widgets;
 using Content.Shared.CombatMode;
 using Content.Shared.Weapons.Ranged.Components;
+using Content.Shared.Weapons.Ranged.Events;
 using Robust.Client.Graphics;
 using Robust.Client.Input;
 using Robust.Client.ResourceManagement;
-using Robust.Shared.Containers;
+using Robust.Client.UserInterface;
+using Robust.Shared.Configuration;
 using Robust.Shared.Enums;
 using Color = Robust.Shared.Maths.Color;
 
@@ -17,6 +20,8 @@ public sealed class AmmoCounterOverlay : Overlay
     [Dependency] private readonly IEntityManager _entity = default!;
     [Dependency] private readonly IInputManager _input = default!;
     [Dependency] private readonly IResourceCache _resource = default!;
+    [Dependency] private readonly IConfigurationManager _cfg = default!;
+    [Dependency] private readonly IUserInterfaceManager _ui = default!;
 
     private readonly HandsSystem _hands;
     private readonly CombatModeSystem _combatMode;
@@ -39,25 +44,16 @@ public sealed class AmmoCounterOverlay : Overlay
         if (activeItem == null)
             return;
 
-        BallisticAmmoProviderComponent? ballistic = null;
-
-        // Случай 1: оружие с магазином (M54C, M41A и т.д.)
-        if (_entity.TryGetComponent<ContainerManagerComponent>(activeItem.Value, out var containers)
-            && containers.Containers.TryGetValue("gun_magazine", out var magazineContainer))
-        {
-            var magazine = magazineContainer.ContainedEntities.FirstOrDefault();
-            if (magazine != default)
-                _entity.TryGetComponent(magazine, out ballistic);
-        }
-
-        // Случай 2: патроны прямо на оружии (XM88, дробовики и т.д.)
-        if (ballistic == null)
-            _entity.TryGetComponent(activeItem.Value, out ballistic);
-
-        if (ballistic == null)
+        if (!_entity.HasComponent<GunComponent>(activeItem.Value))
             return;
 
-        var ammoText = $"{ballistic.Count}/{ballistic.Capacity}";
+        var ammoCountEvent = new GetAmmoCountEvent();
+        _entity.EventBus.RaiseLocalEvent(activeItem.Value, ref ammoCountEvent);
+
+        if (ammoCountEvent.Capacity == 0)
+            return;
+
+        var ammoText = $"{ammoCountEvent.Count}/{ammoCountEvent.Capacity}";
 
         var handle = args.ScreenHandle;
         var font = new VectorFont(
@@ -65,10 +61,35 @@ public sealed class AmmoCounterOverlay : Overlay
             12
         );
 
-        var mousePos = _input.MouseScreenPosition.Position;
-        var pos = new Vector2(mousePos.X + 16f, mousePos.Y - 24f);
+        var position = _cfg.GetCVar(CCVars.CombatModeAmmoCounterPosition);
+        Vector2 pos;
 
-        // Только текст, без фона
+        if (position == 1)
+        {
+            // Над слотом активной руки
+            var hotbar = _ui.GetActiveUIWidgetOrNull<HotbarGui>();
+            if (hotbar?.HandContainer != null)
+            {
+                var handPos = hotbar.HandContainer.GlobalPixelPosition;
+                var handSize = hotbar.HandContainer.PixelSize;
+                pos = new Vector2(
+                    handPos.X + handSize.X / 2f - 16f,
+                    handPos.Y - 20f
+                );
+            }
+            else
+            {
+                // Fallback — внизу по центру
+                pos = new Vector2(args.ViewportBounds.Right / 2f - 16f, args.ViewportBounds.Bottom - 80f);
+            }
+        }
+        else
+        {
+            // У курсора (по умолчанию)
+            var mousePos = _input.MouseScreenPosition.Position;
+            pos = new Vector2(mousePos.X + 16f, mousePos.Y - 24f);
+        }
+
         handle.DrawString(font, pos, ammoText, Color.White);
     }
 }
