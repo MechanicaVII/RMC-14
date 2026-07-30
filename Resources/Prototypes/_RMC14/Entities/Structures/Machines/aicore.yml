@@ -303,3 +303,45 @@
   - type: ARESLogType
     permissions:
     - CMAccessDropship
+
+#Tabs
+#Sections shown on the ARES terminal home screen, gated the same way as log categories
+
+- type: entity
+  abstract: true
+  id: MasterARESTab
+  name: SYS Error Tab
+  components:
+  - type: ARESTab
+
+- type: entity
+  parent: MasterARESTab
+  id: ARESTabCoreSecurity
+  name: Core Security
+  components:
+  - type: ARESTab
+    permissions:
+    - RMCAccessSeniorCommand
+
+- type: entity
+  parent: MasterARESTab
+  id: ARESTabEmergency
+  name: Emergency
+  components:
+  - type: ARESTab
+    permissions:
+    - RMCAccessCommand
+
+- type: entity
+  parent: MasterARESTab
+  id: ARESTabTickets
+  name: Tickets
+  components:
+  - type: ARESTab
+
+- type: entity
+  parent: MasterARESTab
+  id: ARESTabChat
+  name: ARES Chat
+  components:
+  - type: ARESTab

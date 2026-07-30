@@ -30,6 +30,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     private static readonly int LogsShown = 12;
 
     public HashSet<EntProtoId<ARESLogTypeComponent>> LogTypes { get; private set; } = [];
+    public HashSet<EntProtoId<ARESTabComponent>> TabTypes { get; private set; } = [];
 
     public override void Initialize()
     {
@@ -81,12 +82,19 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     private void ReloadTabs()
     {
         LogTypes = [];
+        TabTypes = [];
 
         foreach (var entity in _prototypes.EnumeratePrototypes<EntityPrototype>())
         {
             if (entity.HasComponent<ARESLogTypeComponent>())
             {
                 LogTypes.Add(entity.ID);
+                continue;
+            }
+
+            if (entity.HasComponent<ARESTabComponent>())
+            {
+                TabTypes.Add(entity.ID);
                 continue;
             }
         }
@@ -140,6 +148,26 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
                     ent.Comp.ShownLogs.Add(logType);
                     break;
                 }
+            }
+        }
+
+        //This compares the stored ID card data and determines what tabs/sections you can see.
+        foreach (var tabType in TabTypes)
+        {
+            var tabPermission = tabType.Get(_prototypes, _componentFactory).Permissions;
+            if (tabPermission.Count == 0)
+            {
+                ent.Comp.ShownTabs.Add(tabType);
+                continue;
+            }
+
+            foreach (var permission in ent.Comp.Accesses)
+            {
+                if (!tabPermission.Contains(permission))
+                    continue;
+
+                ent.Comp.ShownTabs.Add(tabType);
+                break;
             }
         }
 
