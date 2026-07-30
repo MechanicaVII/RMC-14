@@ -128,6 +128,27 @@
                     </PanelContainer>
                 </PanelContainer>
 
+                <!-- Tickets -->
+                <PanelContainer Name="TicketsSection" Access="Public" Margin="0 0 0 10" Visible="False">
+                    <PanelContainer.PanelOverride>
+                        <graphics:StyleBoxFlat BorderColor="#162838"
+                                               BorderThickness="2"/>
+                    </PanelContainer.PanelOverride>
+                    <PanelContainer>
+                        <PanelContainer.PanelOverride>
+                            <graphics:StyleBoxFlat BackgroundColor="#162031" BorderColor="#162031"
+                                                   BorderThickness="4" />
+                        </PanelContainer.PanelOverride>
+                        <BoxContainer Orientation="Vertical" Margin="0 10 0 0">
+                            <RichTextLabel Text="[font size= 20]Tickets" Margin="0 0 0 10" HorizontalAlignment="Center"/>
+                            <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Access="Public" Name="TicketsViewAccess" Text="Access Requests" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                                <Button Access="Public" Name="TicketsViewMaintenance" Text="Maintenance Requests" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                            </BoxContainer>
+                        </BoxContainer>
+                    </PanelContainer>
+                </PanelContainer>
+
                 <!-- AIST -->
                 <!-- <PanelContainer Margin="0 0 0 10"> -->
                 <!--     <PanelContainer.PanelOverride> -->
@@ -175,6 +196,31 @@
                             </BoxContainer>
                             <ScrollContainer VScrollEnabled="True" HScrollEnabled="False" VerticalExpand="True" MaxWidth="868">
                                 <GridContainer Name="LogsContainer" Access="Public" Columns="1"/>
+                            </ScrollContainer>
+                        </BoxContainer>
+                    </PanelContainer>
+                </PanelContainer>
+            </Control>
+
+            <Control Name="TicketMenu" Access="Public" Visible="False" VerticalExpand="True">
+                <PanelContainer Margin="0 0 0 10" VerticalExpand="True">
+                    <PanelContainer.PanelOverride>
+                        <graphics:StyleBoxFlat BorderColor="#162838"
+                                               BorderThickness="2"/>
+                    </PanelContainer.PanelOverride>
+                    <PanelContainer VerticalExpand="True">
+                        <PanelContainer.PanelOverride>
+                            <graphics:StyleBoxFlat BackgroundColor="#162031" BorderColor="#162031"
+                                                   BorderThickness="4" />
+                        </PanelContainer.PanelOverride>
+                        <BoxContainer Orientation="Vertical" VerticalExpand="True">
+                            <RichTextLabel Name="TicketMenuName" Access="Public" Text="[font size= 16]Tickets: ERROR" Margin="0 10 0 0"/>
+                            <userInterface:BlueHorizontalSeparator Margin="0 0 0 7.5"/>
+                            <BoxContainer HorizontalAlignment="Center">
+                                <Button Name="TicketSubmitNew" Access="Public" Text="Submit New Ticket" MaxHeight="30" Margin="2.5 0 2.5 2.5" StyleClasses="OpenBoth" HorizontalAlignment="Center"/>
+                            </BoxContainer>
+                            <ScrollContainer VScrollEnabled="True" HScrollEnabled="False" VerticalExpand="True" MaxWidth="868">
+                                <GridContainer Name="TicketsContainer" Access="Public" Columns="1"/>
                             </ScrollContainer>
                         </BoxContainer>
                     </PanelContainer>

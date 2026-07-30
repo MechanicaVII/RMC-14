@@ -1,5 +1,6 @@
 using Content.Shared._RMC14.ARES.Logs;
 using Content.Shared._RMC14.ARES.Tabs;
+using Content.Shared._RMC14.ARES.Tickets;
 using Content.Shared._RMC14.Weapons.Ranged.IFF;
 using Content.Shared.Access;
 using Robust.Shared.GameStates;
@@ -45,4 +46,10 @@ public sealed partial class ARESExternalTerminalComponent : Component
 
     [DataField, AutoNetworkedField]
     public Color Color = Color.Blue;
+
+    [DataField, AutoNetworkedField]
+    public List<ARESTicketRecord> ShownTickets = new();
+
+    [DataField, AutoNetworkedField]
+    public ARESTicketType ShownTicketType = ARESTicketType.Access;
 }

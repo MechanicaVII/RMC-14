@@ -16,3 +16,12 @@ rmc-ares-emergency-general-quarters-title = General Quarters
 rmc-ares-emergency-general-quarters-confirm = Sound General Quarters and raise the alert level to Red?
 rmc-ares-emergency-evacuation-title = Evacuation
 rmc-ares-emergency-evacuation-confirm = Toggle the ship evacuation order?
+
+# Tickets
+
+rmc-ares-ticket-submit-prompt = Describe your { $type } request:
+rmc-ares-ticket-submitted-log = { $user } submitted a { $type } ticket: { $description }
+rmc-ares-ticket-claimed-log = Ticket #{ $id } claimed by { $user }.
+rmc-ares-ticket-approved-log = Ticket #{ $id } approved by { $user }.
+rmc-ares-ticket-rejected-log = Ticket #{ $id } rejected by { $user }.
+rmc-ares-ticket-cancelled-log = Ticket #{ $id } cancelled by { $user }.

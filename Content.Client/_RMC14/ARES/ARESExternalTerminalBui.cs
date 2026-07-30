@@ -4,6 +4,7 @@ using Content.Shared._RMC14.ARES.Emergency;
 using Content.Shared._RMC14.ARES.ExternalTerminals;
 using Content.Shared._RMC14.ARES.Logs;
 using Content.Shared._RMC14.ARES.Tabs;
+using Content.Shared._RMC14.ARES.Tickets;
 using Content.Shared._RMC14.UserInterface;
 using Content.Shared.Access;
 using Robust.Client.UserInterface;
@@ -21,15 +22,18 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
     private readonly ProtoId<AccessLevelPrototype> _logAccess = "RMCAccessLogs";
     private readonly EntProtoId<ARESTabComponent> _coreSecurityTab = "ARESTabCoreSecurity";
     private readonly EntProtoId<ARESTabComponent> _emergencyTab = "ARESTabEmergency";
+    private readonly EntProtoId<ARESTabComponent> _ticketsTab = "ARESTabTickets";
     private Menu _menu = Menu.HomeMenu;
     private Menu _previousMenu = Menu.HomeMenu;
     private int _logIndex = 0;
     private EntProtoId<ARESLogTypeComponent>? _logType;
+    private ARESTicketType _shownTicketType = ARESTicketType.Access;
 
     private enum Menu
     {
         HomeMenu,
         LogMenu,
+        TicketMenu,
     }
 
     public ARESExternalTerminalBui(EntityUid owner, Enum uiKey) : base(owner, uiKey)
@@ -52,6 +56,8 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         RefreshLogs(terminal);
         UpdateCoreSecuritySection(terminal);
         UpdateEmergencySection(terminal);
+        UpdateTicketsSection(terminal);
+        RefreshTickets(terminal);
     }
 
     private void UpdateCoreSecuritySection(ARESExternalTerminalComponent terminal)
@@ -68,6 +74,74 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
             return;
 
         _window.EmergencySection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_emergencyTab);
+    }
+
+    private void UpdateTicketsSection(ARESExternalTerminalComponent terminal)
+    {
+        if (_window is not { IsOpen: true })
+            return;
+
+        _window.TicketsSection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_ticketsTab);
+    }
+
+    private void RefreshTickets(ARESExternalTerminalComponent terminal)
+    {
+        if (_window is not { IsOpen: true } || _menu != Menu.TicketMenu)
+            return;
+
+        _window.TicketMenuName.Text = _shownTicketType == ARESTicketType.Access
+            ? "[font size=16]Tickets: Access Requests[/font]"
+            : "[font size=16]Tickets: Maintenance Requests[/font]";
+
+        _window.TicketsContainer.RemoveAllChildren();
+        foreach (var ticket in terminal.ShownTickets)
+        {
+            var row = new BoxContainer { Orientation = BoxContainer.LayoutOrientation.Horizontal, Margin = new Thickness(0, 0, 0, 2.5f) };
+
+            var statusText = ticket.Status switch
+            {
+                ARESTicketStatus.Open => "Open",
+                ARESTicketStatus.Claimed => $"Claimed by {ticket.Claimant}",
+                ARESTicketStatus.Approved => "Approved",
+                ARESTicketStatus.Rejected => "Rejected",
+                ARESTicketStatus.Cancelled => "Cancelled",
+                _ => "Unknown",
+            };
+
+            var label = new RichTextLabel
+            {
+                Text = $"[font size=12]#{ticket.Id} - {FormattedMessage.EscapeText(ticket.Requester)}: {FormattedMessage.EscapeText(ticket.Description)} [{statusText}][/font]",
+                HorizontalExpand = true,
+            };
+            row.AddChild(label);
+
+            if (ticket.Status == ARESTicketStatus.Open)
+            {
+                var claim = new Button { Text = "Claim", MinWidth = 60 };
+                claim.OnPressed += _ => SendPredictedMessage(new RMCARESClaimTicket(ticket.Id));
+                row.AddChild(claim);
+            }
+
+            if (ticket.Status is ARESTicketStatus.Open or ARESTicketStatus.Claimed)
+            {
+                var approve = new Button { Text = "Approve", MinWidth = 70 };
+                approve.OnPressed += _ => SendPredictedMessage(new RMCARESResolveTicket(ticket.Id, true));
+                row.AddChild(approve);
+
+                var reject = new Button { Text = "Reject", MinWidth = 60 };
+                reject.OnPressed += _ => SendPredictedMessage(new RMCARESResolveTicket(ticket.Id, false));
+                row.AddChild(reject);
+            }
+
+            if (ticket.Status is ARESTicketStatus.Open or ARESTicketStatus.Claimed)
+            {
+                var cancel = new Button { Text = "Cancel", MinWidth = 60 };
+                cancel.OnPressed += _ => SendPredictedMessage(new RMCARESCancelTicket(ticket.Id));
+                row.AddChild(cancel);
+            }
+
+            _window.TicketsContainer.AddChild(row);
+        }
     }
 
     private void RefreshLogs(ARESExternalTerminalComponent component)
@@ -110,6 +184,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
 
         _window.LogMenu.Visible = false;
         _window.HomeMenu.Visible = false;
+        _window.TicketMenu.Visible = false;
 
         if (_menu == Menu.HomeMenu)
         {
@@ -118,6 +193,10 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         else if (_menu == Menu.LogMenu)
         {
             _window.LogMenu.Visible = true;
+        }
+        else if (_menu == Menu.TicketMenu)
+        {
+            _window.TicketMenu.Visible = true;
         }
     }
 
@@ -245,6 +324,26 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
 
         _window.GeneralQuarters.OnPressed += _ => SendPredictedMessage(new RMCARESRequestGeneralQuarters());
         _window.Evacuation.OnPressed += _ => SendPredictedMessage(new RMCARESRequestEvacuation());
+
+        _window.TicketsViewAccess.OnPressed += _ =>
+        {
+            _shownTicketType = ARESTicketType.Access;
+            _previousMenu = _menu;
+            _menu = Menu.TicketMenu;
+            SendPredictedMessage(new RMCARESShowTickets(ARESTicketType.Access));
+            Refresh();
+        };
+
+        _window.TicketsViewMaintenance.OnPressed += _ =>
+        {
+            _shownTicketType = ARESTicketType.Maintenance;
+            _previousMenu = _menu;
+            _menu = Menu.TicketMenu;
+            SendPredictedMessage(new RMCARESShowTickets(ARESTicketType.Maintenance));
+            Refresh();
+        };
+
+        _window.TicketSubmitNew.OnPressed += _ => SendPredictedMessage(new RMCARESRequestSubmitTicket(_shownTicketType));
 
         Refresh();
     }

@@ -30,4 +30,11 @@ public sealed partial class ARESCoreComponent : Component
     // Client Empty.
     [DataField, Access(typeof(CoreSecurity.ARESCoreSecuritySystem), Other = AccessPermissions.None)]
     public HashSet<EntityUid> CoreSentries = new();
+
+    // Client Empty.
+    [DataField, Access(typeof(Tickets.ARESTicketSystem), Other = AccessPermissions.None)]
+    public List<Tickets.ARESTicketRecord> Tickets = new();
+
+    [DataField, Access(typeof(Tickets.ARESTicketSystem), Other = AccessPermissions.None)]
+    public int NextTicketId = 1;
 }

@@ -6,6 +6,7 @@ using Content.Shared._RMC14.ARES.CoreSecurity;
 using Content.Shared._RMC14.ARES.Emergency;
 using Content.Shared._RMC14.ARES.Logs;
 using Content.Shared._RMC14.ARES.Tabs;
+using Content.Shared._RMC14.ARES.Tickets;
 using Content.Shared._RMC14.Dialog;
 using Content.Shared._RMC14.Evacuation;
 using Content.Shared._RMC14.Rules;
@@ -34,12 +35,15 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     [Dependency] private readonly GunIFFSystem _iffSystem = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
     [Dependency] private readonly ISerializationManager _serialization = default!;
+    [Dependency] private readonly ARESTicketSystem _tickets = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
 
     private static readonly EntProtoId<ARESLogTypeComponent> CoreLog = "ARESTabARESLogs";
     private static readonly EntProtoId<ARESTabComponent> CoreSecurityTab = "ARESTabCoreSecurity";
     private static readonly EntProtoId<ARESTabComponent> EmergencyTab = "ARESTabEmergency";
+    private static readonly EntProtoId<ARESTabComponent> TicketsTab = "ARESTabTickets";
     private static readonly int LogsShown = 12;
+    private static readonly int TicketDescriptionLimit = 200;
 
     public HashSet<EntProtoId<ARESLogTypeComponent>> LogTypes { get; private set; } = [];
     public HashSet<EntProtoId<ARESTabComponent>> TabTypes { get; private set; } = [];
@@ -56,12 +60,18 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
                 subs.Event<RMCARESRequestCoreSentryFaction>(OnRequestCoreSentryFaction);
                 subs.Event<RMCARESRequestGeneralQuarters>(OnRequestGeneralQuarters);
                 subs.Event<RMCARESRequestEvacuation>(OnRequestEvacuation);
+                subs.Event<RMCARESRequestSubmitTicket>(OnRequestSubmitTicket);
+                subs.Event<RMCARESShowTickets>(OnShowTickets);
+                subs.Event<RMCARESClaimTicket>(OnClaimTicket);
+                subs.Event<RMCARESResolveTicket>(OnResolveTicket);
+                subs.Event<RMCARESCancelTicket>(OnCancelTicket);
             });
 
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESLockdownConfirmEvent>(OnLockdownConfirm);
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESCoreSentryFactionConfirmEvent>(OnCoreSentryFactionConfirm);
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESGeneralQuartersConfirmEvent>(OnGeneralQuartersConfirm);
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESEvacuationConfirmEvent>(OnEvacuationConfirm);
+        SubscribeLocalEvent<ARESExternalTerminalComponent, ARESSubmitTicketInputEvent>(OnSubmitTicketInput);
 
         SubscribeLocalEvent<ARESExternalTerminalComponent, MapInitEvent>(OnMapInit);
         SubscribeLocalEvent<ARESExternalTerminalComponent, BeforeActivatableUIOpenEvent>(OnBeforeActivatableUIOpen);
@@ -180,6 +190,84 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
         var map = _transform.GetMap(ent.Owner);
         _evacuation.ToggleEvacuation(null, null, map);
+    }
+
+    private void OnRequestSubmitTicket(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestSubmitTicket args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab))
+            return;
+
+        var message = Loc.GetString("rmc-ares-ticket-submit-prompt", ("type", args.Type));
+        _dialog.OpenInput(ent.Owner, args.Actor, message, new ARESSubmitTicketInputEvent(args.Type, ""), true, TicketDescriptionLimit);
+    }
+
+    private void OnSubmitTicketInput(Entity<ARESExternalTerminalComponent> ent, ref ARESSubmitTicketInputEvent args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        if (string.IsNullOrWhiteSpace(args.Message))
+            return;
+
+        _tickets.SubmitTicket((coreUid, core), args.Type, ent.Comp.LoggedInUser, args.Message);
+        RefreshShownTickets(ent, (coreUid, core), args.Type);
+    }
+
+    private void OnShowTickets(Entity<ARESExternalTerminalComponent> ent, ref RMCARESShowTickets args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        RefreshShownTickets(ent, (coreUid, core), args.Type);
+    }
+
+    private void OnClaimTicket(Entity<ARESExternalTerminalComponent> ent, ref RMCARESClaimTicket args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        _tickets.TryClaimTicket((coreUid, core), args.Id, ent.Comp.LoggedInUser);
+        RefreshShownTickets(ent, (coreUid, core), ent.Comp.ShownTicketType);
+    }
+
+    private void OnResolveTicket(Entity<ARESExternalTerminalComponent> ent, ref RMCARESResolveTicket args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        _tickets.TryResolveTicket((coreUid, core), args.Id, args.Approve, ent.Comp.LoggedInUser);
+        RefreshShownTickets(ent, (coreUid, core), ent.Comp.ShownTicketType);
+    }
+
+    private void OnCancelTicket(Entity<ARESExternalTerminalComponent> ent, ref RMCARESCancelTicket args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        _tickets.TryCancelTicket((coreUid, core), args.Id, ent.Comp.LoggedInUser);
+        RefreshShownTickets(ent, (coreUid, core), ent.Comp.ShownTicketType);
+    }
+
+    private void RefreshShownTickets(Entity<ARESExternalTerminalComponent> ent, Entity<ARESCoreComponent> core, ARESTicketType type)
+    {
+        ent.Comp.ShownTicketType = type;
+        ent.Comp.ShownTickets = _tickets.GetTickets(core, type);
+        Dirty(ent);
     }
 
     private void OnPrototypesReloaded(PrototypesReloadedEventArgs ev)
