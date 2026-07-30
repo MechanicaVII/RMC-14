@@ -115,7 +115,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
     private void OnRequestLockdown(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestLockdown args)
     {
-        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab))
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab) || _net.IsClient)
             return;
 
         if (RemoteConsoleBlockedPopup(ent, args.Actor))
@@ -142,7 +142,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
     private void OnRequestCoreSentryFaction(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestCoreSentryFaction args)
     {
-        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab))
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab) || _net.IsClient)
             return;
 
         if (!ARESCoreSecuritySystem.CoreSentryFactionPresets.ContainsKey(args.Preset))
@@ -170,7 +170,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
     private void OnRequestGeneralQuarters(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestGeneralQuarters args)
     {
-        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(EmergencyTab))
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(EmergencyTab) || _net.IsClient)
             return;
 
         if (RemoteConsoleBlockedPopup(ent, args.Actor))
@@ -192,7 +192,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
     private void OnRequestEvacuation(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestEvacuation args)
     {
-        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(EmergencyTab))
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(EmergencyTab) || _net.IsClient)
             return;
 
         if (RemoteConsoleBlockedPopup(ent, args.Actor))
@@ -215,7 +215,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
     private void OnRequestSubmitTicket(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestSubmitTicket args)
     {
-        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab))
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(TicketsTab) || _net.IsClient)
             return;
 
         var message = Loc.GetString("rmc-ares-ticket-submit-prompt", ("type", args.Type));
@@ -293,7 +293,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
     private void OnRequestSendChatMessage(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestSendChatMessage args)
     {
-        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(ChatTab))
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(ChatTab) || _net.IsClient)
             return;
 
         var message = Loc.GetString("rmc-ares-chat-message-prompt");
