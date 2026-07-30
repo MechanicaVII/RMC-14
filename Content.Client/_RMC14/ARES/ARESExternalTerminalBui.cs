@@ -1,4 +1,5 @@
 using Content.Shared._RMC14.ARES;
+using Content.Shared._RMC14.ARES.Chat;
 using Content.Shared._RMC14.ARES.CoreSecurity;
 using Content.Shared._RMC14.ARES.Emergency;
 using Content.Shared._RMC14.ARES.ExternalTerminals;
@@ -23,6 +24,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
     private readonly EntProtoId<ARESTabComponent> _coreSecurityTab = "ARESTabCoreSecurity";
     private readonly EntProtoId<ARESTabComponent> _emergencyTab = "ARESTabEmergency";
     private readonly EntProtoId<ARESTabComponent> _ticketsTab = "ARESTabTickets";
+    private readonly EntProtoId<ARESTabComponent> _chatTab = "ARESTabChat";
     private Menu _menu = Menu.HomeMenu;
     private Menu _previousMenu = Menu.HomeMenu;
     private int _logIndex = 0;
@@ -34,6 +36,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         HomeMenu,
         LogMenu,
         TicketMenu,
+        ChatMenu,
     }
 
     public ARESExternalTerminalBui(EntityUid owner, Enum uiKey) : base(owner, uiKey)
@@ -58,6 +61,8 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         UpdateEmergencySection(terminal);
         UpdateTicketsSection(terminal);
         RefreshTickets(terminal);
+        UpdateChatSection(terminal);
+        RefreshChat(terminal);
     }
 
     private void UpdateCoreSecuritySection(ARESExternalTerminalComponent terminal)
@@ -82,6 +87,31 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
             return;
 
         _window.TicketsSection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_ticketsTab);
+    }
+
+    private void UpdateChatSection(ARESExternalTerminalComponent terminal)
+    {
+        if (_window is not { IsOpen: true })
+            return;
+
+        _window.ChatSection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_chatTab);
+    }
+
+    private void RefreshChat(ARESExternalTerminalComponent terminal)
+    {
+        if (_window is not { IsOpen: true } || _menu != Menu.ChatMenu)
+            return;
+
+        _window.ChatContainer.RemoveAllChildren();
+        foreach (var message in terminal.ShownChat)
+        {
+            var label = new RichTextLabel
+            {
+                Text = $"[font size=12][{message.Time}] {FormattedMessage.EscapeText(message.Sender)}: {FormattedMessage.EscapeText(message.Message)}[/font]",
+                Margin = new Thickness(0, 0, 0, 2.5f),
+            };
+            _window.ChatContainer.AddChild(label);
+        }
     }
 
     private void RefreshTickets(ARESExternalTerminalComponent terminal)
@@ -185,6 +215,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         _window.LogMenu.Visible = false;
         _window.HomeMenu.Visible = false;
         _window.TicketMenu.Visible = false;
+        _window.ChatMenu.Visible = false;
 
         if (_menu == Menu.HomeMenu)
         {
@@ -197,6 +228,10 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         else if (_menu == Menu.TicketMenu)
         {
             _window.TicketMenu.Visible = true;
+        }
+        else if (_menu == Menu.ChatMenu)
+        {
+            _window.ChatMenu.Visible = true;
         }
     }
 
@@ -344,6 +379,21 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         };
 
         _window.TicketSubmitNew.OnPressed += _ => SendPredictedMessage(new RMCARESRequestSubmitTicket(_shownTicketType));
+
+        _window.ChatOpen.OnPressed += _ =>
+        {
+            _previousMenu = _menu;
+            _menu = Menu.ChatMenu;
+            SendPredictedMessage(new RMCARESShowChat());
+            Refresh();
+        };
+
+        _window.ChatSend.OnPressed += _ => SendPredictedMessage(new RMCARESRequestSendChatMessage());
+        _window.ChatClear.OnPressed += _ =>
+        {
+            SendPredictedMessage(new RMCARESClearChat());
+            Refresh();
+        };
 
         Refresh();
     }

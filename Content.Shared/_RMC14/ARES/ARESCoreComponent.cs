@@ -37,4 +37,8 @@ public sealed partial class ARESCoreComponent : Component
 
     [DataField, Access(typeof(Tickets.ARESTicketSystem), Other = AccessPermissions.None)]
     public int NextTicketId = 1;
+
+    // Client Empty.
+    [DataField, Access(typeof(Chat.ARESChatSystem), Other = AccessPermissions.None)]
+    public Dictionary<string, List<Chat.ARESChatMessageRecord>> Conversations = new();
 }

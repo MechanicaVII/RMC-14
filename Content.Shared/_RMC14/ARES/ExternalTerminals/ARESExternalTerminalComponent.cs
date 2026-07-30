@@ -1,3 +1,4 @@
+using Content.Shared._RMC14.ARES.Chat;
 using Content.Shared._RMC14.ARES.Logs;
 using Content.Shared._RMC14.ARES.Tabs;
 using Content.Shared._RMC14.ARES.Tickets;
@@ -52,4 +53,7 @@ public sealed partial class ARESExternalTerminalComponent : Component
 
     [DataField, AutoNetworkedField]
     public ARESTicketType ShownTicketType = ARESTicketType.Access;
+
+    [DataField, AutoNetworkedField]
+    public List<ARESChatMessageRecord> ShownChat = new();
 }

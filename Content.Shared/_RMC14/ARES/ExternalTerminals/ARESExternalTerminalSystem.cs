@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Content.Shared._RMC14.Access;
 using Content.Shared._RMC14.AlertLevel;
+using Content.Shared._RMC14.ARES.Chat;
 using Content.Shared._RMC14.ARES.CoreSecurity;
 using Content.Shared._RMC14.ARES.Emergency;
 using Content.Shared._RMC14.ARES.Logs;
@@ -25,6 +26,7 @@ namespace Content.Shared._RMC14.ARES.ExternalTerminals;
 public sealed class ARESExternalTerminalSystem : EntitySystem
 {
     [Dependency] private readonly RMCAlertLevelSystem _alertLevel = default!;
+    [Dependency] private readonly ARESChatSystem _chat = default!;
     [Dependency] private readonly ARESCoreSystem _core = default!;
     [Dependency] private readonly ARESCoreSecuritySystem _coreSecurity = default!;
     [Dependency] private readonly IComponentFactory _componentFactory = default!;
@@ -42,6 +44,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     private static readonly EntProtoId<ARESTabComponent> CoreSecurityTab = "ARESTabCoreSecurity";
     private static readonly EntProtoId<ARESTabComponent> EmergencyTab = "ARESTabEmergency";
     private static readonly EntProtoId<ARESTabComponent> TicketsTab = "ARESTabTickets";
+    private static readonly EntProtoId<ARESTabComponent> ChatTab = "ARESTabChat";
     private static readonly int LogsShown = 12;
     private static readonly int TicketDescriptionLimit = 200;
 
@@ -65,6 +68,9 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
                 subs.Event<RMCARESClaimTicket>(OnClaimTicket);
                 subs.Event<RMCARESResolveTicket>(OnResolveTicket);
                 subs.Event<RMCARESCancelTicket>(OnCancelTicket);
+                subs.Event<RMCARESRequestSendChatMessage>(OnRequestSendChatMessage);
+                subs.Event<RMCARESShowChat>(OnShowChat);
+                subs.Event<RMCARESClearChat>(OnClearChat);
             });
 
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESLockdownConfirmEvent>(OnLockdownConfirm);
@@ -72,6 +78,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESGeneralQuartersConfirmEvent>(OnGeneralQuartersConfirm);
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESEvacuationConfirmEvent>(OnEvacuationConfirm);
         SubscribeLocalEvent<ARESExternalTerminalComponent, ARESSubmitTicketInputEvent>(OnSubmitTicketInput);
+        SubscribeLocalEvent<ARESExternalTerminalComponent, ARESChatMessageInputEvent>(OnChatMessageInput);
 
         SubscribeLocalEvent<ARESExternalTerminalComponent, MapInitEvent>(OnMapInit);
         SubscribeLocalEvent<ARESExternalTerminalComponent, BeforeActivatableUIOpenEvent>(OnBeforeActivatableUIOpen);
@@ -267,6 +274,59 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     {
         ent.Comp.ShownTicketType = type;
         ent.Comp.ShownTickets = _tickets.GetTickets(core, type);
+        Dirty(ent);
+    }
+
+    private void OnRequestSendChatMessage(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestSendChatMessage args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(ChatTab))
+            return;
+
+        var message = Loc.GetString("rmc-ares-chat-message-prompt");
+        _dialog.OpenInput(ent.Owner, args.Actor, message, new ARESChatMessageInputEvent(""), true, TicketDescriptionLimit);
+    }
+
+    private void OnChatMessageInput(Entity<ARESExternalTerminalComponent> ent, ref ARESChatMessageInputEvent args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(ChatTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        if (string.IsNullOrWhiteSpace(args.Message))
+            return;
+
+        _chat.SendMessage((coreUid, core), ent.Comp.LoggedInUser, args.Message);
+        RefreshShownChat(ent, (coreUid, core));
+    }
+
+    private void OnShowChat(Entity<ARESExternalTerminalComponent> ent, ref RMCARESShowChat args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(ChatTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        RefreshShownChat(ent, (coreUid, core));
+    }
+
+    private void OnClearChat(Entity<ARESExternalTerminalComponent> ent, ref RMCARESClearChat args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(ChatTab) || _net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        _chat.ClearConversation((coreUid, core), ent.Comp.LoggedInUser);
+        RefreshShownChat(ent, (coreUid, core));
+    }
+
+    private void RefreshShownChat(Entity<ARESExternalTerminalComponent> ent, Entity<ARESCoreComponent> core)
+    {
+        ent.Comp.ShownChat = _chat.GetConversation(core, ent.Comp.LoggedInUser);
         Dirty(ent);
     }
 

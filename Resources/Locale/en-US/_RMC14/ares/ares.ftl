@@ -25,3 +25,8 @@ rmc-ares-ticket-claimed-log = Ticket #{ $id } claimed by { $user }.
 rmc-ares-ticket-approved-log = Ticket #{ $id } approved by { $user }.
 rmc-ares-ticket-rejected-log = Ticket #{ $id } rejected by { $user }.
 rmc-ares-ticket-cancelled-log = Ticket #{ $id } cancelled by { $user }.
+
+# Chat
+
+rmc-ares-chat-message-prompt = Message to ARES:
+rmc-ares-chat-message-log = { $user } -> ARES: { $message }
