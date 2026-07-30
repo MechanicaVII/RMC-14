@@ -48,6 +48,13 @@ public sealed partial class ARESExternalTerminalComponent : Component
     [DataField, AutoNetworkedField]
     public Color Color = Color.Blue;
 
+    /// <summary>
+    ///     Marks this terminal as a remote admin console: sees every tab/log regardless of
+    ///     access, but cannot execute lockdown/core sentry IFF/alert level/evacuation remotely.
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public bool IsAdminRemote;
+
     [DataField, AutoNetworkedField]
     public List<ARESTicketRecord> ShownTickets = new();
 

@@ -1,3 +1,5 @@
+rmc-ares-remote-console-blocked = You cannot do this via remote console.
+
 # Core Security
 
 rmc-ares-core-security-lockdown-title = AI Core Lockdown

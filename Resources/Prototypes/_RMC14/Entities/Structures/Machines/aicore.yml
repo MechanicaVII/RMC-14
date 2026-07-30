@@ -214,6 +214,16 @@
         type: ARESExternalTerminalBui
 
 - type: entity
+  parent: RMCAIConsoleHERMES
+  id: RMCAresAdminConsole
+  name: ARES remote administration console
+  description: A restricted console granting full remote oversight of ARES - sees every tab and log regardless of access, but cannot remotely engage lockdown, alter core sentry IFF, sound General Quarters, or trigger an evacuation.
+  components:
+  - type: ARESExternalTerminal
+    showsLogs: true
+    isAdminRemote: true
+
+- type: entity
   abstract: true
   id: MasterARESLogType
   name: SYS Error Log

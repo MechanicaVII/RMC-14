@@ -14,6 +14,7 @@ using Content.Shared._RMC14.Rules;
 using Content.Shared._RMC14.Weapons.Ranged.IFF;
 using Content.Shared.Access.Components;
 using Content.Shared.Access.Systems;
+using Content.Shared.Popups;
 using Content.Shared.Prototypes;
 using Content.Shared.UserInterface;
 using Microsoft.VisualBasic;
@@ -36,6 +37,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly GunIFFSystem _iffSystem = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
+    [Dependency] private readonly SharedPopupSystem _popup = default!;
     [Dependency] private readonly ISerializationManager _serialization = default!;
     [Dependency] private readonly ARESTicketSystem _tickets = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
@@ -116,6 +118,9 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
         if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab))
             return;
 
+        if (RemoteConsoleBlockedPopup(ent, args.Actor))
+            return;
+
         var title = Loc.GetString("rmc-ares-core-security-lockdown-title");
         var message = args.Active
             ? Loc.GetString("rmc-ares-core-security-lockdown-engage-confirm")
@@ -143,6 +148,9 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
         if (!ARESCoreSecuritySystem.CoreSentryFactionPresets.ContainsKey(args.Preset))
             return;
 
+        if (RemoteConsoleBlockedPopup(ent, args.Actor))
+            return;
+
         var title = Loc.GetString("rmc-ares-core-security-iff-title");
         var message = Loc.GetString("rmc-ares-core-security-iff-confirm", ("preset", args.Preset));
 
@@ -165,6 +173,9 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
         if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(EmergencyTab))
             return;
 
+        if (RemoteConsoleBlockedPopup(ent, args.Actor))
+            return;
+
         var title = Loc.GetString("rmc-ares-emergency-general-quarters-title");
         var message = Loc.GetString("rmc-ares-emergency-general-quarters-confirm");
 
@@ -182,6 +193,9 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     private void OnRequestEvacuation(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestEvacuation args)
     {
         if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(EmergencyTab))
+            return;
+
+        if (RemoteConsoleBlockedPopup(ent, args.Actor))
             return;
 
         var title = Loc.GetString("rmc-ares-emergency-evacuation-title");
@@ -330,6 +344,15 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
         Dirty(ent);
     }
 
+    private bool RemoteConsoleBlockedPopup(Entity<ARESExternalTerminalComponent> ent, EntityUid actor)
+    {
+        if (!ent.Comp.IsAdminRemote)
+            return false;
+
+        _popup.PopupClient(Loc.GetString("rmc-ares-remote-console-blocked"), ent, actor);
+        return true;
+    }
+
     private void OnPrototypesReloaded(PrototypesReloadedEventArgs ev)
     {
         if (ev.WasModified<EntityPrototype>())
@@ -387,25 +410,44 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
         // logs are special...
         if (ent.Comp.ShowsLogs)
         {
-            //This compares the stored ID card data and determines what log types you can view.
-            foreach (var logType in LogTypes)
+            //A remote admin console sees every log category regardless of access.
+            if (ent.Comp.IsAdminRemote)
             {
-                var logPermission = logType.Get(_prototypes, _componentFactory).Permissions;
-                if (logPermission == null || logPermission.Count == 0)
-                {
+                foreach (var logType in LogTypes)
                     ent.Comp.ShownLogs.Add(logType);
-                    continue;
-                }
-
-                foreach (var permission in ent.Comp.Accesses)
+            }
+            else
+            {
+                //This compares the stored ID card data and determines what log types you can view.
+                foreach (var logType in LogTypes)
                 {
-                    if (!logPermission.Contains(permission))
+                    var logPermission = logType.Get(_prototypes, _componentFactory).Permissions;
+                    if (logPermission == null || logPermission.Count == 0)
+                    {
+                        ent.Comp.ShownLogs.Add(logType);
                         continue;
+                    }
 
-                    ent.Comp.ShownLogs.Add(logType);
-                    break;
+                    foreach (var permission in ent.Comp.Accesses)
+                    {
+                        if (!logPermission.Contains(permission))
+                            continue;
+
+                        ent.Comp.ShownLogs.Add(logType);
+                        break;
+                    }
                 }
             }
+        }
+
+        //A remote admin console sees every tab/section regardless of access.
+        if (ent.Comp.IsAdminRemote)
+        {
+            foreach (var tabType in TabTypes)
+                ent.Comp.ShownTabs.Add(tabType);
+
+            Dirty(ent);
+            return;
         }
 
         //This compares the stored ID card data and determines what tabs/sections you can see.
