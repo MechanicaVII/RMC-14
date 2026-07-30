@@ -9,3 +9,10 @@ rmc-ares-core-security-lockdown-lifted-log = AI Core Lockdown LIFTED by { $user 
 rmc-ares-core-security-iff-title = Core Sentry IFF
 rmc-ares-core-security-iff-confirm = Set core sentry IFF to "{ $preset }"?
 rmc-ares-core-security-iff-updated-log = Core Sentry IFF updated to "{ $preset }" by { $user }.
+
+# Emergency
+
+rmc-ares-emergency-general-quarters-title = General Quarters
+rmc-ares-emergency-general-quarters-confirm = Sound General Quarters and raise the alert level to Red?
+rmc-ares-emergency-evacuation-title = Evacuation
+rmc-ares-emergency-evacuation-confirm = Toggle the ship evacuation order?

@@ -1,5 +1,6 @@
 using Content.Shared._RMC14.ARES;
 using Content.Shared._RMC14.ARES.CoreSecurity;
+using Content.Shared._RMC14.ARES.Emergency;
 using Content.Shared._RMC14.ARES.ExternalTerminals;
 using Content.Shared._RMC14.ARES.Logs;
 using Content.Shared._RMC14.ARES.Tabs;
@@ -19,6 +20,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
 
     private readonly ProtoId<AccessLevelPrototype> _logAccess = "RMCAccessLogs";
     private readonly EntProtoId<ARESTabComponent> _coreSecurityTab = "ARESTabCoreSecurity";
+    private readonly EntProtoId<ARESTabComponent> _emergencyTab = "ARESTabEmergency";
     private Menu _menu = Menu.HomeMenu;
     private Menu _previousMenu = Menu.HomeMenu;
     private int _logIndex = 0;
@@ -49,6 +51,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         UpdateLogCategory(terminal);
         RefreshLogs(terminal);
         UpdateCoreSecuritySection(terminal);
+        UpdateEmergencySection(terminal);
     }
 
     private void UpdateCoreSecuritySection(ARESExternalTerminalComponent terminal)
@@ -57,6 +60,14 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
             return;
 
         _window.CoreSecuritySection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_coreSecurityTab);
+    }
+
+    private void UpdateEmergencySection(ARESExternalTerminalComponent terminal)
+    {
+        if (_window is not { IsOpen: true })
+            return;
+
+        _window.EmergencySection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_emergencyTab);
     }
 
     private void RefreshLogs(ARESExternalTerminalComponent component)
@@ -231,6 +242,9 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         _window.SentryFactionWeya.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("WeYa Only"));
         _window.SentryFactionBoth.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("UNMC & WeYa"));
         _window.SentryFactionHostile.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("Hostile To All"));
+
+        _window.GeneralQuarters.OnPressed += _ => SendPredictedMessage(new RMCARESRequestGeneralQuarters());
+        _window.Evacuation.OnPressed += _ => SendPredictedMessage(new RMCARESRequestEvacuation());
 
         Refresh();
     }
