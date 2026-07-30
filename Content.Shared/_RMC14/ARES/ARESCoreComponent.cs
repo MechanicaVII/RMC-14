@@ -20,7 +20,14 @@ public sealed partial class ARESCoreComponent : Component
     [DataField, AutoNetworkedField]
     public int MaxLogs = 5000;
 
+    [DataField, AutoNetworkedField]
+    public bool LockdownActive;
+
     // Client Empty.
     [DataField, Access(typeof(ARESCoreSystem), Other = AccessPermissions.None)]
     public Dictionary<EntProtoId<ARESLogTypeComponent>, List<string>> Logs = new();
+
+    // Client Empty.
+    [DataField, Access(typeof(CoreSecurity.ARESCoreSecuritySystem), Other = AccessPermissions.None)]
+    public HashSet<EntityUid> CoreSentries = new();
 }

@@ -1,6 +1,8 @@
 using Content.Shared._RMC14.ARES;
+using Content.Shared._RMC14.ARES.CoreSecurity;
 using Content.Shared._RMC14.ARES.ExternalTerminals;
 using Content.Shared._RMC14.ARES.Logs;
+using Content.Shared._RMC14.ARES.Tabs;
 using Content.Shared._RMC14.UserInterface;
 using Content.Shared.Access;
 using Robust.Client.UserInterface;
@@ -16,6 +18,7 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
     [Dependency] private readonly IPrototypeManager _prototype = default!;
 
     private readonly ProtoId<AccessLevelPrototype> _logAccess = "RMCAccessLogs";
+    private readonly EntProtoId<ARESTabComponent> _coreSecurityTab = "ARESTabCoreSecurity";
     private Menu _menu = Menu.HomeMenu;
     private Menu _previousMenu = Menu.HomeMenu;
     private int _logIndex = 0;
@@ -45,6 +48,15 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
         RefreshLogin(terminal);
         UpdateLogCategory(terminal);
         RefreshLogs(terminal);
+        UpdateCoreSecuritySection(terminal);
+    }
+
+    private void UpdateCoreSecuritySection(ARESExternalTerminalComponent terminal)
+    {
+        if (_window is not { IsOpen: true })
+            return;
+
+        _window.CoreSecuritySection.Visible = terminal.LoggedIn && terminal.ShownTabs.Contains(_coreSecurityTab);
     }
 
     private void RefreshLogs(ARESExternalTerminalComponent component)
@@ -211,6 +223,14 @@ public sealed class ARESExternalTerminalBui : BoundUserInterface, IRefreshableBu
             SendPredictedMessage(new RMCARESExternalShowLogs(_logType, _logIndex));
             Refresh();
         };
+
+        _window.LockdownEngage.OnPressed += _ => SendPredictedMessage(new RMCARESRequestLockdown(true));
+        _window.LockdownLift.OnPressed += _ => SendPredictedMessage(new RMCARESRequestLockdown(false));
+
+        _window.SentryFactionUnmc.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("UNMC Only"));
+        _window.SentryFactionWeya.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("WeYa Only"));
+        _window.SentryFactionBoth.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("UNMC & WeYa"));
+        _window.SentryFactionHostile.OnPressed += _ => SendPredictedMessage(new RMCARESRequestCoreSentryFaction("Hostile To All"));
 
         Refresh();
     }

@@ -65,14 +65,6 @@
                                     <controls:ARESExternalTerminalSection Access="Public" Name="LogCategory" SectionNameText="[font size= 15]Logs" Visible="False"/>
 
                                     <Control Visible="False">
-                                        <RichTextLabel Text="[font size= 15]Security Procedures" Margin="0 10 0 5" HorizontalAlignment="Center" HorizontalExpand="True"/>
-                                        <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Text="Lockdown Overrides" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 2.5" StyleClasses="OpenBoth" ModulateSelfOverride="Maroon"/>
-                                            <Button Text="Ship Decontamination" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 2.5" StyleClasses="OpenBoth" ModulateSelfOverride="Maroon"/>
-                                        </BoxContainer>
-                                    </Control>
-
-                                    <Control Visible="False">
                                         <RichTextLabel Text="[font size= 15]Core Access" Margin="0 10 0 5" HorizontalAlignment="Center" HorizontalExpand="True"/>
                                         <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Text="Access Requests" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 2.5" StyleClasses="OpenBoth"/>
@@ -85,7 +77,7 @@
                 </PanelContainer>
 
                 <!-- Core Security -->
-                <PanelContainer Margin="0 0 0 10" Visible="False">
+                <PanelContainer Name="CoreSecuritySection" Access="Public" Margin="0 0 0 10" Visible="False">
                     <PanelContainer.PanelOverride>
                         <graphics:StyleBoxFlat BorderColor="#162838"
                                                BorderThickness="2"/>
@@ -98,11 +90,17 @@
                         <BoxContainer Orientation="Vertical" Margin="0 10 0 0">
                             <RichTextLabel Text="[font size= 20]Core Security Protocols" Margin="0 0 0 10" HorizontalAlignment="Center"/>
                                 <BoxContainer Orientation="Vertical">
+                                    <RichTextLabel Text="[font size= 15]AI Core Lockdown" Margin="0 0 0 5" HorizontalAlignment="Center"/>
                                     <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Text="ASRS Logs" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
-                                        <Button Text="Announcement Logs" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
-                                        <Button Text="Medical Logs" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
-                                        <Button Text="ARES Logs" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                                        <Button Access="Public" Name="LockdownEngage" Text="Engage Lockdown" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth" ModulateSelfOverride="Maroon"/>
+                                        <Button Access="Public" Name="LockdownLift" Text="Lift Lockdown" SetHeight="30" SetWidth="200" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                                    </BoxContainer>
+                                    <RichTextLabel Text="[font size= 15]Core Sentry IFF" Margin="0 10 0 5" HorizontalAlignment="Center"/>
+                                    <BoxContainer Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Access="Public" Name="SentryFactionUnmc" Text="UNMC Only" SetHeight="30" SetWidth="150" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                                        <Button Access="Public" Name="SentryFactionWeya" Text="WeYa Only" SetHeight="30" SetWidth="150" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                                        <Button Access="Public" Name="SentryFactionBoth" Text="UNMC &amp; WeYa" SetHeight="30" SetWidth="150" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth"/>
+                                        <Button Access="Public" Name="SentryFactionHostile" Text="Hostile To All" SetHeight="30" SetWidth="150" Margin="2.5 0 2.5 0" StyleClasses="OpenBoth" ModulateSelfOverride="Maroon"/>
                                     </BoxContainer>
                                 </BoxContainer>
                         </BoxContainer>

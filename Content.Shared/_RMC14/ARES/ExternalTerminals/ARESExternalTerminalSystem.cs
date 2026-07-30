@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
 using System.Linq;
 using Content.Shared._RMC14.Access;
+using Content.Shared._RMC14.ARES.CoreSecurity;
 using Content.Shared._RMC14.ARES.Logs;
 using Content.Shared._RMC14.ARES.Tabs;
+using Content.Shared._RMC14.Dialog;
 using Content.Shared._RMC14.Rules;
 using Content.Shared._RMC14.Weapons.Ranged.IFF;
 using Content.Shared.Access.Components;
@@ -19,7 +21,9 @@ namespace Content.Shared._RMC14.ARES.ExternalTerminals;
 public sealed class ARESExternalTerminalSystem : EntitySystem
 {
     [Dependency] private readonly ARESCoreSystem _core = default!;
+    [Dependency] private readonly ARESCoreSecuritySystem _coreSecurity = default!;
     [Dependency] private readonly IComponentFactory _componentFactory = default!;
+    [Dependency] private readonly DialogSystem _dialog = default!;
     [Dependency] private readonly SharedIdCardSystem _idCard = default!;
     [Dependency] private readonly INetManager _net = default!;
     [Dependency] private readonly GunIFFSystem _iffSystem = default!;
@@ -27,6 +31,7 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
     [Dependency] private readonly ISerializationManager _serialization = default!;
 
     private static readonly EntProtoId<ARESLogTypeComponent> CoreLog = "ARESTabARESLogs";
+    private static readonly EntProtoId<ARESTabComponent> CoreSecurityTab = "ARESTabCoreSecurity";
     private static readonly int LogsShown = 12;
 
     public HashSet<EntProtoId<ARESLogTypeComponent>> LogTypes { get; private set; } = [];
@@ -40,7 +45,12 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
                 subs.Event<RMCARESExternalLogin>(OnExternalLogin);
                 subs.Event<RMCARESExternalLogout>(OnExternalLogout);
                 subs.Event<RMCARESExternalShowLogs>(OnExternalShowLogs);
+                subs.Event<RMCARESRequestLockdown>(OnRequestLockdown);
+                subs.Event<RMCARESRequestCoreSentryFaction>(OnRequestCoreSentryFaction);
             });
+
+        SubscribeLocalEvent<ARESExternalTerminalComponent, ARESLockdownConfirmEvent>(OnLockdownConfirm);
+        SubscribeLocalEvent<ARESExternalTerminalComponent, ARESCoreSentryFactionConfirmEvent>(OnCoreSentryFactionConfirm);
 
         SubscribeLocalEvent<ARESExternalTerminalComponent, MapInitEvent>(OnMapInit);
         SubscribeLocalEvent<ARESExternalTerminalComponent, BeforeActivatableUIOpenEvent>(OnBeforeActivatableUIOpen);
@@ -71,6 +81,55 @@ public sealed class ARESExternalTerminalSystem : EntitySystem
 
         ent.Comp.Logs = logs.SkipLast(args.Index * LogsShown).TakeLast(LogsShown).Reverse().ToList();
         Dirty(ent);
+    }
+
+    private void OnRequestLockdown(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestLockdown args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab))
+            return;
+
+        var title = Loc.GetString("rmc-ares-core-security-lockdown-title");
+        var message = args.Active
+            ? Loc.GetString("rmc-ares-core-security-lockdown-engage-confirm")
+            : Loc.GetString("rmc-ares-core-security-lockdown-lift-confirm");
+
+        _dialog.OpenConfirmation(ent.Owner, args.Actor, title, message, new ARESLockdownConfirmEvent(args.Active));
+    }
+
+    private void OnLockdownConfirm(Entity<ARESExternalTerminalComponent> ent, ref ARESLockdownConfirmEvent args)
+    {
+        if (_net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        _coreSecurity.SetLockdown((coreUid, core), args.Active, ent.Comp.LoggedInUser);
+    }
+
+    private void OnRequestCoreSentryFaction(Entity<ARESExternalTerminalComponent> ent, ref RMCARESRequestCoreSentryFaction args)
+    {
+        if (!ent.Comp.LoggedIn || !ent.Comp.ShownTabs.Contains(CoreSecurityTab))
+            return;
+
+        if (!ARESCoreSecuritySystem.CoreSentryFactionPresets.ContainsKey(args.Preset))
+            return;
+
+        var title = Loc.GetString("rmc-ares-core-security-iff-title");
+        var message = Loc.GetString("rmc-ares-core-security-iff-confirm", ("preset", args.Preset));
+
+        _dialog.OpenConfirmation(ent.Owner, args.Actor, title, message, new ARESCoreSentryFactionConfirmEvent(args.Preset));
+    }
+
+    private void OnCoreSentryFactionConfirm(Entity<ARESExternalTerminalComponent> ent, ref ARESCoreSentryFactionConfirmEvent args)
+    {
+        if (_net.IsClient)
+            return;
+
+        if (ent.Comp.ARESCore is not { } coreUid || !TryComp(coreUid, out ARESCoreComponent? core))
+            return;
+
+        _coreSecurity.SetCoreSentryFaction((coreUid, core), args.Preset, ent.Comp.LoggedInUser);
     }
 
     private void OnPrototypesReloaded(PrototypesReloadedEventArgs ev)
